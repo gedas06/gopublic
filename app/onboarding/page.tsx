@@ -1,196 +1,249 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-interface Message {
-  role: "user" | "assistant";
-  content: string;
+interface Answers {
+  specialisation: string;
+  ideal_client: string;
+  outcome: string;
+  differentiator: string;
+  contact_preference: string;
 }
 
+const QUESTIONS: {
+  key: keyof Answers;
+  text: string;
+  options: string[];
+}[] = [
+  {
+    key: "specialisation",
+    text: "What do you specialise in?",
+    options: [
+      "Individual therapy sessions",
+      "Group programmes",
+      "Workshops & training",
+      "Coaching & consultancy",
+    ],
+  },
+  {
+    key: "ideal_client",
+    text: "Who do you typically work with?",
+    options: [
+      "Adults going through a life transition",
+      "Children and young people",
+      "Professionals and executives",
+      "Families and couples",
+    ],
+  },
+  {
+    key: "outcome",
+    text: "What do clients usually come to you with?",
+    options: [
+      "Stress, anxiety or burnout",
+      "Communication or relationship issues",
+      "A specific diagnosis or condition",
+      "Personal growth and clarity",
+    ],
+  },
+  {
+    key: "differentiator",
+    text: "What makes your approach different?",
+    options: [
+      "I combine multiple methods",
+      "I focus on practical, real-world results",
+      "I take a holistic, whole-person view",
+      "My lived experience informs my work",
+    ],
+  },
+  {
+    key: "contact_preference",
+    text: "How should clients get in touch?",
+    options: [
+      "Email me directly",
+      "Call or WhatsApp me",
+      "Book via my online calendar",
+      "Contact form on my page",
+    ],
+  },
+];
+
 export default function OnboardingPage() {
-  const router = useRouter();
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [ready, setReady] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState<Partial<Answers>>({});
+  const [selected, setSelected] = useState<string | null>(null);
+  const [showCustom, setShowCustom] = useState(false);
+  const [customInput, setCustomInput] = useState("");
+  const [transitioning, setTransitioning] = useState(false);
+  const [done, setDone] = useState(false);
 
-  useEffect(() => {
-    async function init() {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const firstName = user?.user_metadata?.first_name ?? "there";
-      setMessages([
-        {
-          role: "assistant",
-          content: `Hi ${firstName}! I'm going to ask you a few quick questions to build your page. Ready to start?`,
-        },
-      ]);
-      setReady(true);
-    }
-    init();
-  }, []);
+  const question = QUESTIONS[step];
+  const total = QUESTIONS.length;
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+  async function advance(answer: string) {
+    const newAnswers = { ...answers, [question.key]: answer };
+    setAnswers(newAnswers);
+    setTransitioning(true);
 
-  async function sendMessage(userContent: string) {
-    const next: Message[] = [...messages, { role: "user", content: userContent }];
-    setMessages(next);
-    setInput("");
-    setLoading(true);
+    await new Promise((r) => setTimeout(r, 180));
 
-    // Skip the hardcoded greeting (index 0) — API messages must start with user
-    const apiMessages = next.slice(1).map((m) => ({
-      role: m.role,
-      content: m.content,
-    }));
-
-    try {
-      const response = await fetch("/api/onboarding", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: apiMessages }),
-      });
-
-      if (!response.body) return;
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let fullText = "";
-      let firstChunk = true;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        if (firstChunk) {
-          setLoading(false);
-          setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
-          firstChunk = false;
-        }
-
-        fullText += decoder.decode(value, { stream: true });
-        setMessages((prev) => {
-          const updated = [...prev];
-          updated[updated.length - 1] = {
-            role: "assistant",
-            content: fullText,
-          };
-          return updated;
-        });
-      }
-
-      // Detect the JSON block and save to Supabase
-      const jsonMatch = fullText.match(/\{[\s\S]*?"specialisation"[\s\S]*?\}/);
-      if (jsonMatch) {
-        try {
-          const data = JSON.parse(jsonMatch[0]);
-          const supabase = createClient();
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
-          if (user) {
-            await supabase.from("onboarding_data").insert({
-              user_id: user.id,
-              specialisation: data.specialisation,
-              ideal_client: data.ideal_client,
-              outcome: data.outcome,
-              differentiator: data.differentiator,
-              years_experience: data.years_experience,
-              origin_story: data.origin_story,
-              contact_preference: data.contact_preference,
-            });
-          }
-          setTimeout(() => router.push("/preview"), 1500);
-        } catch {
-          // JSON parse failed — conversation continues
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      setLoading(false);
+    if (step < total - 1) {
+      setStep((s) => s + 1);
+      setSelected(null);
+      setShowCustom(false);
+      setCustomInput("");
+      setTransitioning(false);
+    } else {
+      saveInBackground(newAnswers as Answers);
+      setDone(true);
     }
   }
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!input.trim() || loading) return;
-    sendMessage(input.trim());
+  async function handleChipClick(option: string) {
+    if (selected || transitioning) return;
+    setSelected(option);
+    await new Promise((r) => setTimeout(r, 120));
+    await advance(option);
   }
 
-  if (!ready) {
+  async function handleCustomSubmit(e?: React.FormEvent) {
+    e?.preventDefault();
+    const val = customInput.trim();
+    if (!val) return;
+    await advance(val);
+  }
+
+  function saveInBackground(finalAnswers: Answers) {
+    createClient()
+      .auth.getUser()
+      .then(({ data: { user } }) => {
+        if (!user) return;
+        fetch("/api/generate-page", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: user.id, answers: finalAnswers }),
+        }).catch(() => {});
+      })
+      .catch(() => {});
+  }
+
+  if (done) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white">
-        <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-black" />
-      </div>
+      <main className="flex min-h-screen flex-col items-center justify-center bg-white px-6 text-center">
+        <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full border-2 border-black">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-5 w-5 text-black"
+          >
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </div>
+        <h1 className="mb-3 text-3xl font-light tracking-tight text-black">
+          We&apos;ll be in touch soon.
+        </h1>
+        <p className="mb-6 text-sm text-gray-400">
+          We&apos;re reviewing your answers and will reach out shortly.
+        </p>
+        <p className="text-base font-medium text-black">
+          You&apos;re about to GoPublic.
+        </p>
+      </main>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-white">
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-8">
-        <div className="mx-auto max-w-2xl space-y-4">
-          {messages.map((msg, i) => (
+    <main className="flex min-h-screen flex-col bg-white px-6 py-10 sm:px-10">
+      {/* Progress */}
+      <div className="mb-12 flex items-center justify-between">
+        <span className="text-xs tracking-wide text-gray-400">
+          {step + 1} of {total}
+        </span>
+        <div className="flex gap-1">
+          {QUESTIONS.map((_, i) => (
             <div
               key={i}
-              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
-                  msg.role === "user"
-                    ? "bg-blue-50 text-gray-900"
-                    : "bg-gray-100 text-gray-900"
-                }`}
-              >
-                {msg.content}
-              </div>
-            </div>
+              className={`h-1 w-6 rounded-full transition-colors duration-300 ${
+                i <= step ? "bg-black" : "bg-gray-100"
+              }`}
+            />
           ))}
-
-          {loading && (
-            <div className="flex justify-start">
-              <div className="rounded-2xl bg-gray-100 px-4 py-3">
-                <div className="flex gap-1 items-center h-4">
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:-0.3s]" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:-0.15s]" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400" />
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
         </div>
       </div>
 
-      {/* Input */}
-      <div className="border-t border-gray-100 bg-white px-4 py-4">
-        <form onSubmit={handleSubmit} className="mx-auto flex max-w-2xl gap-3">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            disabled={loading}
-            placeholder="Type your answer…"
-            autoFocus
-            className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-black focus:outline-none focus:ring-1 focus:ring-black disabled:opacity-50"
-          />
-          <button
-            type="submit"
-            disabled={loading || !input.trim()}
-            className="rounded-xl bg-black px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-40 focus:outline-none"
-          >
-            Send
-          </button>
-        </form>
+      {/* Question + answers */}
+      <div
+        className={`flex-1 transition-all duration-200 ${
+          transitioning
+            ? "translate-y-2 opacity-0"
+            : "translate-y-0 opacity-100"
+        }`}
+      >
+        <h1 className="mb-8 text-3xl font-light tracking-tight text-black sm:text-4xl">
+          {question.text}
+        </h1>
+
+        {!showCustom ? (
+          <div className="flex flex-col gap-3">
+            {question.options.map((option) => (
+              <button
+                key={option}
+                onClick={() => handleChipClick(option)}
+                disabled={!!selected || transitioning}
+                className={`rounded-full border px-5 py-3 text-left text-sm transition-colors duration-150 focus:outline-none disabled:cursor-default ${
+                  selected === option
+                    ? "border-black bg-black text-white"
+                    : "border-gray-200 bg-white text-gray-900 hover:border-gray-400"
+                }`}
+              >
+                {option}
+              </button>
+            ))}
+
+            <button
+              onClick={() => setShowCustom(true)}
+              className="mt-2 text-left text-xs text-gray-400 hover:text-gray-600 focus:outline-none"
+            >
+              Type my own answer
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleCustomSubmit} className="flex flex-col gap-3">
+            <input
+              type="text"
+              value={customInput}
+              onChange={(e) => setCustomInput(e.target.value)}
+              autoFocus
+              placeholder="Your answer…"
+              className="rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
+            />
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={!customInput.trim()}
+                className="rounded-full bg-black px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-40 focus:outline-none"
+              >
+                Continue
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCustom(false);
+                  setCustomInput("");
+                }}
+                className="rounded-full border border-gray-200 px-5 py-2.5 text-sm text-gray-500 hover:border-gray-400 focus:outline-none"
+              >
+                Back
+              </button>
+            </div>
+          </form>
+        )}
       </div>
-    </div>
+    </main>
   );
 }
