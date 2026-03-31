@@ -6,12 +6,20 @@ export default function Home() {
       <h1 className="text-6xl font-light tracking-tight text-black">
         GoPublic
       </h1>
-      <Link
-        href="/signup"
-        className="text-sm font-medium text-gray-500 hover:text-black transition-colors"
-      >
-        Get started →
-      </Link>
+      <div className="flex flex-col items-center gap-2">
+        <Link
+          href="/signup"
+          className="text-sm font-medium text-gray-500 hover:text-black transition-colors"
+        >
+          Get started →
+        </Link>
+        <Link
+          href="/about"
+          className="text-sm font-medium text-gray-500 hover:text-black transition-colors"
+        >
+          What is GoPublic?
+        </Link>
+      </div>
     </main>
   );
 }
