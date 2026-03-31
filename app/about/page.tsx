@@ -54,7 +54,7 @@ export default function About() {
               Your clients, organised
             </p>
             <p className="text-sm text-gray-500">
-              Keep track of who you're working with, follow up at the right
+              Keep track of who you&apos;re working with, follow up at the right
               time, and never lose a lead again.
             </p>
           </li>
