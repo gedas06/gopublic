@@ -1,4 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
@@ -6,15 +7,10 @@ export async function POST(
   _request: Request,
   { params }: { params: { id: string } }
 ) {
-  const supabase = createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const userId = session?.user?.id;
-
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const supabase = createRouteHandlerClient({ cookies });
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const userId = session.user.id;
 
   const resend = new Resend(process.env.RESEND_API_KEY);
   const invoiceId = params.id;
