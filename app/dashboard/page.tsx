@@ -37,9 +37,13 @@ export default function DashboardPage() {
         fetch("/api/billing"),
       ]);
 
-      setClients((await cr.json()) ?? []);
-      setVisits((await vr.json()) ?? []);
-      setInvoices((await ir.json()) ?? []);
+      const clientsData = cr.ok ? await cr.json() : [];
+      const visitsData = vr.ok ? await vr.json() : [];
+      const invoicesData = ir.ok ? await ir.json() : [];
+
+      setClients(Array.isArray(clientsData) ? clientsData : []);
+      setVisits(Array.isArray(visitsData) ? visitsData : []);
+      setInvoices(Array.isArray(invoicesData) ? invoicesData : []);
 
       if (userId) {
         const { data: profile } = await supabase

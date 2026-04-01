@@ -40,8 +40,12 @@ export default function VisitsPage() {
         fetch("/api/clients"),
         fetch("/api/visits"),
       ]);
-      setClients((await cr.json()) ?? []);
-      setVisits((await vr.json()) ?? []);
+
+      const clientsData = cr.ok ? await cr.json() : [];
+      const visitsData = vr.ok ? await vr.json() : [];
+
+      setClients(Array.isArray(clientsData) ? clientsData : []);
+      setVisits(Array.isArray(visitsData) ? visitsData : []);
       setLoading(false);
     }
     load();
