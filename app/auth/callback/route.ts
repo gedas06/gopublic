@@ -16,24 +16,7 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && data.user) {
-      // Check if the user already has a profile (onboarding complete)
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_id", data.user.id)
-        .maybeSingle();
-
-      if (profile) {
-        return NextResponse.redirect(`${origin}/dashboard`);
-      }
-
-      // No profile — check if they still need to complete their basic info
-      const profession = data.user.user_metadata?.profession;
-      if (!profession) {
-        return NextResponse.redirect(`${origin}/complete-profile`);
-      }
-
-      return NextResponse.redirect(`${origin}/onboarding`);
+      return NextResponse.redirect(`${origin}/dashboard`);
     }
   }
 

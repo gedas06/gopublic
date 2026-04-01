@@ -35,7 +35,7 @@ export default function CompleteProfilePage() {
 
       const { profession, city } = user.user_metadata ?? {};
       if (profession && city) {
-        router.replace("/onboarding");
+        router.replace("/dashboard");
         return;
       }
 
@@ -67,7 +67,7 @@ export default function CompleteProfilePage() {
       return;
     }
 
-    router.push("/onboarding");
+    router.push("/dashboard");
   }
 
   if (checking) {
