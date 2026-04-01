@@ -2,28 +2,54 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 import { AddClientModal, type ClientRecord } from "@/components/add-client-modal";
 import { LogSessionModal, type VisitRecord } from "@/components/log-session-modal";
 
 type Client = ClientRecord;
-
 type Visit = VisitRecord;
+type Invoice = { month: string; amount: number; status: string };
+
+function greeting(firstName?: string): string {
+  const hour = new Date().getHours();
+  const time = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
+  return firstName ? `Good ${time}, ${firstName}` : `Good ${time}`;
+}
 
 export default function DashboardPage() {
+  const [firstName, setFirstName] = useState<string | undefined>();
   const [clients, setClients] = useState<Client[]>([]);
   const [visits, setVisits] = useState<Visit[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddClient, setShowAddClient] = useState(false);
   const [showLogSession, setShowLogSession] = useState(false);
 
   useEffect(() => {
     async function load() {
-      const [cr, vr] = await Promise.all([
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+
+      const [cr, vr, ir] = await Promise.all([
         fetch("/api/clients"),
         fetch("/api/visits"),
+        fetch("/api/billing"),
       ]);
+
       setClients((await cr.json()) ?? []);
       setVisits((await vr.json()) ?? []);
+      setInvoices((await ir.json()) ?? []);
+
+      if (userId) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("first_name")
+          .eq("user_id", userId)
+          .single();
+        setFirstName(profile?.first_name ?? undefined);
+      }
+
       setLoading(false);
     }
     load();
@@ -32,14 +58,12 @@ export default function DashboardPage() {
   const now = new Date();
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const monthVisits = visits.filter((v) => v.date.startsWith(thisMonth));
-  const perClient = clients
-    .map((c) => ({
-      id: c.id,
-      name: c.name,
-      count: monthVisits.filter((v) => v.client_id === c.id).length,
-    }))
-    .filter((c) => c.count > 0)
-    .sort((a, b) => b.count - a.count);
+  const revenueThisMonth = invoices
+    .filter((i) => i.month === thisMonth && (i.status === "sent" || i.status === "paid"))
+    .reduce((sum, i) => sum + i.amount, 0);
+  const totalRevenue = invoices
+    .filter((i) => i.status === "sent" || i.status === "paid")
+    .reduce((sum, i) => sum + i.amount, 0);
 
   if (loading) {
     return (
@@ -51,6 +75,45 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
+
+      {/* Greeting */}
+      <h1 className="mb-6 text-2xl font-light tracking-tight text-slate-900">
+        {greeting(firstName)}
+      </h1>
+
+      {/* Stats row */}
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { label: "Clients", value: String(clients.length) },
+          { label: "Sessions this month", value: String(monthVisits.length) },
+          { label: "Revenue this month", value: `€${revenueThisMonth.toFixed(2)}` },
+          { label: "Total revenue", value: `€${totalRevenue.toFixed(2)}` },
+        ].map(({ label, value }) => (
+          <div
+            key={label}
+            className="rounded-2xl border border-slate-100 bg-white p-5"
+          >
+            <p className="text-2xl font-semibold text-slate-900">{value}</p>
+            <p className="mt-1 text-xs uppercase tracking-wide text-slate-500">{label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Empty state */}
+      {clients.length === 0 && (
+        <div className="mb-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+          <p className="mb-4 text-sm text-slate-600">
+            Add your first client to get started
+          </p>
+          <Link
+            href="/dashboard/visits"
+            className="rounded-full bg-black px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 transition-colors"
+          >
+            + Add client
+          </Link>
+        </div>
+      )}
+
       {/* Quick actions */}
       <div className="mb-8 flex gap-2">
         <button
@@ -68,84 +131,41 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      {clients.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-200 px-6 py-16 text-center">
-          <p className="mb-1 text-sm font-medium text-gray-700">
-            No clients yet
-          </p>
-          <p className="mb-6 text-sm text-gray-400">
-            Add your first client to get started
-          </p>
-          <button
-            onClick={() => setShowAddClient(true)}
-            className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 focus:outline-none"
-          >
-            + Add Client
-          </button>
+      {/* Module cards */}
+      <div className="grid grid-cols-2 gap-3">
+        <Link
+          href="/dashboard/visits"
+          className="rounded-xl border border-gray-200 p-4 hover:border-black transition-colors"
+        >
+          <p className="text-sm font-medium text-gray-900">Visits</p>
+          <p className="mt-1 text-xs text-gray-400">Log and review sessions</p>
+        </Link>
+        <Link
+          href="/dashboard/billing"
+          className="rounded-xl border border-gray-200 p-4 hover:border-black transition-colors"
+        >
+          <p className="text-sm font-medium text-gray-900">Billing</p>
+          <p className="mt-1 text-xs text-gray-400">Generate and send invoices</p>
+        </Link>
+        <div className="rounded-xl border border-gray-100 p-4 opacity-50 cursor-default">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium text-gray-500">Social</p>
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-400">
+              Coming soon
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-gray-400">Content scheduling</p>
         </div>
-      ) : (
-        <>
-          {/* Stats */}
-          <div className="mb-6 rounded-xl bg-gray-50 px-5 py-5">
-            <p className="mb-1 text-xs text-gray-500">Sessions this month</p>
-            <p className="text-4xl font-light text-black">
-              {monthVisits.length}
-            </p>
-            {perClient.length > 0 && (
-              <div className="mt-3 space-y-1.5">
-                {perClient.map((c) => (
-                  <div key={c.id} className="flex items-center gap-3">
-                    <span className="text-sm text-gray-600">{c.name}</span>
-                    <span className="text-sm font-medium text-black">
-                      {c.count}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
+        <div className="rounded-xl border border-gray-100 p-4 opacity-50 cursor-default">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium text-gray-500">Website</p>
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-400">
+              Coming soon
+            </span>
           </div>
-
-          {/* Module cards */}
-          <div className="grid grid-cols-2 gap-3">
-            <Link
-              href="/dashboard/visits"
-              className="rounded-xl border border-gray-200 p-4 hover:border-black transition-colors"
-            >
-              <p className="text-sm font-medium text-gray-900">Visits</p>
-              <p className="mt-1 text-xs text-gray-400">
-                Log and review sessions
-              </p>
-            </Link>
-            <Link
-              href="/dashboard/billing"
-              className="rounded-xl border border-gray-200 p-4 hover:border-black transition-colors"
-            >
-              <p className="text-sm font-medium text-gray-900">Billing</p>
-              <p className="mt-1 text-xs text-gray-400">
-                Generate and send invoices
-              </p>
-            </Link>
-            <div className="rounded-xl border border-gray-100 p-4 opacity-50 cursor-default">
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-medium text-gray-500">Social</p>
-                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-400">
-                  Coming soon
-                </span>
-              </div>
-              <p className="mt-1 text-xs text-gray-400">Content scheduling</p>
-            </div>
-            <div className="rounded-xl border border-gray-100 p-4 opacity-50 cursor-default">
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-medium text-gray-500">Website</p>
-                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-400">
-                  Coming soon
-                </span>
-              </div>
-              <p className="mt-1 text-xs text-gray-400">Your public page</p>
-            </div>
-          </div>
-        </>
-      )}
+          <p className="mt-1 text-xs text-gray-400">Your public page</p>
+        </div>
+      </div>
 
       {showAddClient && (
         <AddClientModal
