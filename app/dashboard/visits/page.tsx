@@ -1,30 +1,38 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AddClientModal, type ClientRecord } from "@/components/add-client-modal";
+import { LogSessionModal, type VisitRecord } from "@/components/log-session-modal";
 
-interface Client {
-  id: string;
-  name: string;
-  rate_amount: number;
+type Client = ClientRecord;
+
+type Visit = VisitRecord;
+
+function groupByMonth(visits: Visit[]): Record<string, Visit[]> {
+  const groups: Record<string, Visit[]> = {};
+  for (const v of visits) {
+    const month = v.date.slice(0, 7);
+    if (!groups[month]) groups[month] = [];
+    groups[month].push(v);
+  }
+  return groups;
 }
 
-interface Visit {
-  id: string;
-  client_id: string;
-  date: string;
-  notes?: string;
+function formatMonth(ym: string) {
+  const [y, m] = ym.split("-");
+  return new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString("en-GB", {
+    month: "long",
+    year: "numeric",
+  });
 }
 
 export default function VisitsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({
-    client_id: "",
-    date: new Date().toISOString().split("T")[0],
-    notes: "",
-  });
-  const [saving, setSaving] = useState(false);
+  const [quickLogging, setQuickLogging] = useState<string | null>(null);
+  const [showAddClient, setShowAddClient] = useState(false);
+  const [showLogSession, setShowLogSession] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -39,33 +47,23 @@ export default function VisitsPage() {
     load();
   }, []);
 
-  // This-month stats computed from the visits array — no extra API call
-  const now = new Date();
-  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const monthVisits = visits.filter((v) => v.date.startsWith(thisMonth));
-  const perClient = clients
-    .map((c) => ({
-      name: c.name,
-      count: monthVisits.filter((v) => v.client_id === c.id).length,
-    }))
-    .filter((c) => c.count > 0);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.client_id) return;
-    setSaving(true);
+  async function quickLog(clientId: string) {
+    setQuickLogging(clientId);
+    const today = new Date().toISOString().split("T")[0];
     const res = await fetch("/api/visits", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ client_id: clientId, date: today }),
     });
     if (res.ok) {
-      const created = await res.json();
-      setVisits((prev) => [created, ...prev]);
-      setForm((f) => ({ ...f, notes: "" }));
+      const visit = await res.json();
+      setVisits((prev) => [visit, ...prev]);
     }
-    setSaving(false);
+    setQuickLogging(null);
   }
+
+  const grouped = groupByMonth(visits);
+  const months = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
 
   if (loading) {
     return (
@@ -77,109 +75,115 @@ export default function VisitsPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="mb-6 text-2xl font-light tracking-tight text-black">
-        Visits
-      </h1>
-
-      {/* Stats summary */}
-      <div className="mb-6 rounded-xl bg-gray-50 px-5 py-4">
-        <div className="flex items-start gap-10">
-          <div>
-            <p className="text-xs text-gray-500">This month</p>
-            <p className="mt-1 text-3xl font-light text-black">
-              {monthVisits.length}
-            </p>
-            <p className="text-xs text-gray-400">sessions</p>
-          </div>
-          {perClient.length > 0 && (
-            <div>
-              <p className="text-xs text-gray-500 mb-2">Per client</p>
-              <div className="space-y-1.5">
-                {perClient.map((c) => (
-                  <div key={c.name} className="flex items-center gap-4">
-                    <span className="text-sm text-gray-700">{c.name}</span>
-                    <span className="text-sm font-medium text-black">
-                      {c.count}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+      {/* Header */}
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-light tracking-tight text-black">
+          Visits
+        </h1>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowAddClient(true)}
+            className="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:border-black hover:text-black focus:outline-none transition-colors"
+          >
+            + Add Client
+          </button>
+          <button
+            onClick={() => setShowLogSession(true)}
+            disabled={clients.length === 0}
+            className="rounded-md bg-black px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800 disabled:opacity-40 focus:outline-none"
+          >
+            + Log Session
+          </button>
         </div>
       </div>
 
-      {/* Quick-log panel */}
-      <div className="mb-8 rounded-xl border border-gray-200 p-4">
-        <h2 className="mb-3 text-sm font-medium text-gray-700">
-          Log a session
-        </h2>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <select
-            value={form.client_id}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, client_id: e.target.value }))
-            }
-            required
-            className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
-          >
-            <option value="">Select client…</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-          <input
-            type="date"
-            value={form.date}
-            onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-            required
-            className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
-          />
-          <input
-            type="text"
-            value={form.notes}
-            onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-            placeholder="Notes (optional)"
-            className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
-          />
+      {clients.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-gray-200 px-6 py-16 text-center">
+          <p className="mb-1 text-sm font-medium text-gray-700">
+            No clients yet
+          </p>
+          <p className="mb-6 text-sm text-gray-400">
+            Add your first client to start logging sessions
+          </p>
           <button
-            type="submit"
-            disabled={saving || !form.client_id}
-            className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-40 focus:outline-none"
+            onClick={() => setShowAddClient(true)}
+            className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 focus:outline-none"
           >
-            {saving ? "Saving…" : "Log session"}
+            + Add Client
           </button>
-        </form>
-      </div>
+        </div>
+      ) : (
+        <>
+          {/* Quick-log panel — one button per client, logs today instantly */}
+          <div className="mb-8 rounded-xl bg-gray-50 p-4">
+            <p className="mb-3 text-xs font-medium text-gray-500">
+              Quick-log today
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {clients.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => quickLog(c.id)}
+                  disabled={quickLogging !== null}
+                  className="rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm text-gray-700 hover:border-black hover:text-black disabled:opacity-40 focus:outline-none transition-colors"
+                >
+                  {quickLogging === c.id ? "Logging…" : c.name}
+                </button>
+              ))}
+            </div>
+          </div>
 
-      {/* Visits list */}
-      <div className="space-y-2">
-        {visits.length === 0 ? (
-          <p className="text-sm text-gray-400">No sessions logged yet.</p>
-        ) : (
-          visits.map((v) => {
-            const client = clients.find((c) => c.id === v.client_id);
-            return (
-              <div
-                key={v.id}
-                className="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-3"
-              >
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    {client?.name ?? "Unknown"}
+          {/* Visit history grouped by month */}
+          {visits.length === 0 ? (
+            <p className="text-sm text-gray-400">No sessions logged yet.</p>
+          ) : (
+            <div className="space-y-8">
+              {months.map((month) => (
+                <div key={month}>
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
+                    {formatMonth(month)}
                   </p>
-                  {v.notes && (
-                    <p className="text-xs text-gray-400">{v.notes}</p>
-                  )}
+                  <div className="space-y-2">
+                    {grouped[month].map((v) => {
+                      const client = clients.find((c) => c.id === v.client_id);
+                      return (
+                        <div
+                          key={v.id}
+                          className="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-3"
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {client?.name ?? "Unknown"}
+                            </p>
+                            {v.notes && (
+                              <p className="text-xs text-gray-400">{v.notes}</p>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-500">{v.date}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-                <p className="text-sm text-gray-500">{v.date}</p>
-              </div>
-            );
-          })
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {showAddClient && (
+        <AddClientModal
+          onClose={() => setShowAddClient(false)}
+          onCreated={(client) => setClients((prev) => [client, ...prev])}
+        />
+      )}
+      {showLogSession && (
+        <LogSessionModal
+          clients={clients}
+          onClose={() => setShowLogSession(false)}
+          onCreated={(visit) => setVisits((prev) => [visit, ...prev])}
+        />
+      )}
     </div>
   );
 }

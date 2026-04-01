@@ -1,5 +1,165 @@
-import { redirect } from "next/navigation";
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { AddClientModal, type ClientRecord } from "@/components/add-client-modal";
+import { LogSessionModal, type VisitRecord } from "@/components/log-session-modal";
+
+type Client = ClientRecord;
+
+type Visit = VisitRecord;
 
 export default function DashboardPage() {
-  redirect("/dashboard/visits");
+  const [clients, setClients] = useState<Client[]>([]);
+  const [visits, setVisits] = useState<Visit[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddClient, setShowAddClient] = useState(false);
+  const [showLogSession, setShowLogSession] = useState(false);
+
+  useEffect(() => {
+    async function load() {
+      const [cr, vr] = await Promise.all([
+        fetch("/api/clients"),
+        fetch("/api/visits"),
+      ]);
+      setClients((await cr.json()) ?? []);
+      setVisits((await vr.json()) ?? []);
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const monthVisits = visits.filter((v) => v.date.startsWith(thisMonth));
+  const perClient = clients
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      count: monthVisits.filter((v) => v.client_id === c.id).length,
+    }))
+    .filter((c) => c.count > 0)
+    .sort((a, b) => b.count - a.count);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-black" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-2xl px-4 py-10">
+      {/* Quick actions */}
+      <div className="mb-8 flex gap-2">
+        <button
+          onClick={() => setShowAddClient(true)}
+          className="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:border-black hover:text-black focus:outline-none transition-colors"
+        >
+          + Add Client
+        </button>
+        <button
+          onClick={() => setShowLogSession(true)}
+          disabled={clients.length === 0}
+          className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-40 focus:outline-none"
+        >
+          + Log Session
+        </button>
+      </div>
+
+      {clients.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-gray-200 px-6 py-16 text-center">
+          <p className="mb-1 text-sm font-medium text-gray-700">
+            No clients yet
+          </p>
+          <p className="mb-6 text-sm text-gray-400">
+            Add your first client to get started
+          </p>
+          <button
+            onClick={() => setShowAddClient(true)}
+            className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 focus:outline-none"
+          >
+            + Add Client
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* Stats */}
+          <div className="mb-6 rounded-xl bg-gray-50 px-5 py-5">
+            <p className="mb-1 text-xs text-gray-500">Sessions this month</p>
+            <p className="text-4xl font-light text-black">
+              {monthVisits.length}
+            </p>
+            {perClient.length > 0 && (
+              <div className="mt-3 space-y-1.5">
+                {perClient.map((c) => (
+                  <div key={c.id} className="flex items-center gap-3">
+                    <span className="text-sm text-gray-600">{c.name}</span>
+                    <span className="text-sm font-medium text-black">
+                      {c.count}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Module cards */}
+          <div className="grid grid-cols-2 gap-3">
+            <Link
+              href="/dashboard/visits"
+              className="rounded-xl border border-gray-200 p-4 hover:border-black transition-colors"
+            >
+              <p className="text-sm font-medium text-gray-900">Visits</p>
+              <p className="mt-1 text-xs text-gray-400">
+                Log and review sessions
+              </p>
+            </Link>
+            <Link
+              href="/dashboard/billing"
+              className="rounded-xl border border-gray-200 p-4 hover:border-black transition-colors"
+            >
+              <p className="text-sm font-medium text-gray-900">Billing</p>
+              <p className="mt-1 text-xs text-gray-400">
+                Generate and send invoices
+              </p>
+            </Link>
+            <div className="rounded-xl border border-gray-100 p-4 opacity-50 cursor-default">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-gray-500">Social</p>
+                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-400">
+                  Coming soon
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-gray-400">Content scheduling</p>
+            </div>
+            <div className="rounded-xl border border-gray-100 p-4 opacity-50 cursor-default">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-gray-500">Website</p>
+                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-400">
+                  Coming soon
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-gray-400">Your public page</p>
+            </div>
+          </div>
+        </>
+      )}
+
+      {showAddClient && (
+        <AddClientModal
+          onClose={() => setShowAddClient(false)}
+          onCreated={(client) => setClients((prev) => [client, ...prev])}
+        />
+      )}
+      {showLogSession && (
+        <LogSessionModal
+          clients={clients}
+          onClose={() => setShowLogSession(false)}
+          onCreated={(visit) => setVisits((prev) => [visit, ...prev])}
+        />
+      )}
+    </div>
+  );
 }

@@ -7,6 +7,7 @@ interface Client {
   name: string;
   email?: string;
   rate_amount: number;
+  rate_type: string;
 }
 
 interface Invoice {
@@ -18,10 +19,32 @@ interface Invoice {
   status: "draft" | "sent" | "paid";
 }
 
+function formatMonth(ym: string) {
+  const [y, m] = ym.split("-");
+  return new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString("en-GB", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function groupByMonth(invoices: Invoice[]): Record<string, Invoice[]> {
+  const groups: Record<string, Invoice[]> = {};
+  for (const inv of invoices) {
+    if (!groups[inv.month]) groups[inv.month] = [];
+    groups[inv.month].push(inv);
+  }
+  return groups;
+}
+
 export default function BillingPage() {
+  const now = new Date();
+  const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
   const [clients, setClients] = useState<Client[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState(defaultMonth);
+  const [generating, setGenerating] = useState(false);
   const [sending, setSending] = useState<string | null>(null);
 
   useEffect(() => {
@@ -36,6 +59,24 @@ export default function BillingPage() {
     }
     load();
   }, []);
+
+  async function handleGenerate() {
+    setGenerating(true);
+    const res = await fetch("/api/billing/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ month: selectedMonth }),
+    });
+    if (res.ok) {
+      const { invoices: created } = await res.json();
+      // Replace invoices for this month with the freshly generated ones
+      setInvoices((prev) => [
+        ...(created ?? []),
+        ...prev.filter((inv) => inv.month !== selectedMonth),
+      ]);
+    }
+    setGenerating(false);
+  }
 
   async function handleSend(invoiceId: string) {
     setSending(invoiceId);
@@ -52,34 +93,48 @@ export default function BillingPage() {
     setSending(null);
   }
 
+  async function handleMarkPaid(invoiceId: string) {
+    const res = await fetch(`/api/billing/${invoiceId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "paid" }),
+    });
+    if (res.ok) {
+      setInvoices((prev) =>
+        prev.map((inv) =>
+          inv.id === invoiceId ? { ...inv, status: "paid" } : inv
+        )
+      );
+    }
+  }
+
   async function handleDownloadPdf(invoice: Invoice) {
     const client = clients.find((c) => c.id === invoice.client_id);
-    // Dynamic import keeps jspdf out of the server bundle
     const { jsPDF } = await import("jspdf");
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
     const margin = 20;
     const pageWidth = doc.internal.pageSize.getWidth();
     const col2 = 100;
+    let y = 30;
 
-    // Header
     doc.setFontSize(24);
     doc.setFont("helvetica", "bold");
-    doc.text("Invoice", margin, 30);
+    doc.text("Invoice", margin, y);
+    y += 12;
 
     doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(120);
-    doc.text(`Period: ${invoice.month}`, margin, 40);
+    doc.text(`Period: ${invoice.month}`, margin, y);
     doc.setTextColor(0);
+    y += 8;
 
     doc.setDrawColor(220);
-    doc.line(margin, 46, pageWidth - margin, 46);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 14;
 
-    // Detail rows
-    let y = 60;
-    const row = (label: string, value: string) => {
-      doc.setFont("helvetica", "normal");
+    const addRow = (label: string, value: string) => {
       doc.setFontSize(11);
       doc.setTextColor(130);
       doc.text(label, margin, y);
@@ -92,12 +147,11 @@ export default function BillingPage() {
       client?.rate_amount ??
       (invoice.visit_count > 0 ? invoice.amount / invoice.visit_count : 0);
 
-    row("Client", client?.name ?? "—");
-    row("Period", invoice.month);
-    row("Sessions", String(invoice.visit_count));
-    row("Rate per session", `\u20ac${rate.toFixed(2)}`);
+    addRow("Client", client?.name ?? "—");
+    addRow("Period", invoice.month);
+    addRow("Sessions", String(invoice.visit_count));
+    addRow("Rate per session", `\u20ac${rate.toFixed(2)}`);
 
-    // Total
     y += 2;
     doc.setDrawColor(220);
     doc.line(margin, y, pageWidth - margin, y);
@@ -109,7 +163,6 @@ export default function BillingPage() {
     doc.text("Total due", margin, y);
     doc.text(`\u20ac${invoice.amount.toFixed(2)}`, col2, y);
 
-    // Footer
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(160);
@@ -130,62 +183,103 @@ export default function BillingPage() {
     );
   }
 
+  const grouped = groupByMonth(invoices);
+  const months = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="mb-8 text-2xl font-light tracking-tight text-black">
+      <h1 className="mb-6 text-2xl font-light tracking-tight text-black">
         Billing
       </h1>
 
+      {/* Month selector + generate */}
+      <div className="mb-8 flex items-center gap-3">
+        <input
+          type="month"
+          value={selectedMonth}
+          onChange={(e) => setSelectedMonth(e.target.value)}
+          className="rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
+        />
+        <button
+          onClick={handleGenerate}
+          disabled={generating}
+          className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-40 focus:outline-none"
+        >
+          {generating ? "Generating…" : "Generate Invoices"}
+        </button>
+      </div>
+
       {invoices.length === 0 ? (
-        <p className="text-sm text-gray-400">No invoices yet.</p>
+        <p className="text-sm text-gray-400">
+          No invoices yet. Select a month and click Generate Invoices.
+        </p>
       ) : (
-        <div className="space-y-3">
-          {invoices.map((inv) => {
-            const client = clients.find((c) => c.id === inv.client_id);
-            return (
-              <div key={inv.id} className="rounded-xl border border-gray-100 p-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {client?.name ?? "Unknown client"}
-                    </p>
-                    <p className="mt-0.5 text-xs text-gray-400">
-                      {inv.month} · {inv.visit_count} sessions · €
-                      {inv.amount.toFixed(2)}
-                    </p>
-                  </div>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      inv.status === "paid"
-                        ? "bg-green-50 text-green-700"
-                        : inv.status === "sent"
-                        ? "bg-blue-50 text-blue-700"
-                        : "bg-gray-100 text-gray-600"
-                    }`}
-                  >
-                    {inv.status}
-                  </span>
-                </div>
-                <div className="mt-3 flex gap-2">
-                  <button
-                    onClick={() => handleSend(inv.id)}
-                    disabled={
-                      sending === inv.id || inv.status === "paid"
-                    }
-                    className="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:border-black hover:text-black disabled:opacity-40 focus:outline-none"
-                  >
-                    {sending === inv.id ? "Sending…" : "Send email"}
-                  </button>
-                  <button
-                    onClick={() => handleDownloadPdf(inv)}
-                    className="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:border-black hover:text-black focus:outline-none"
-                  >
-                    Download PDF
-                  </button>
-                </div>
+        <div className="space-y-8">
+          {months.map((month) => (
+            <div key={month}>
+              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-400">
+                {formatMonth(month)}
+              </p>
+              <div className="space-y-2">
+                {grouped[month].map((inv) => {
+                  const client = clients.find((c) => c.id === inv.client_id);
+                  return (
+                    <div
+                      key={inv.id}
+                      className="rounded-xl border border-gray-100 p-4"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {client?.name ?? "Unknown client"}
+                          </p>
+                          <p className="mt-0.5 text-xs text-gray-400">
+                            {inv.visit_count}{" "}
+                            {inv.visit_count === 1 ? "session" : "sessions"} ·
+                            €{inv.amount.toFixed(2)}
+                          </p>
+                        </div>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                            inv.status === "paid"
+                              ? "bg-green-50 text-green-700"
+                              : inv.status === "sent"
+                              ? "bg-blue-50 text-blue-700"
+                              : "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          {inv.status}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          onClick={() => handleSend(inv.id)}
+                          disabled={sending === inv.id || inv.status === "paid"}
+                          className="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:border-black hover:text-black disabled:opacity-40 focus:outline-none"
+                        >
+                          {sending === inv.id ? "Sending…" : "Send email"}
+                        </button>
+                        <button
+                          onClick={() => handleDownloadPdf(inv)}
+                          className="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:border-black hover:text-black focus:outline-none"
+                        >
+                          Download PDF
+                        </button>
+                        {inv.status !== "paid" && (
+                          <button
+                            onClick={() => handleMarkPaid(inv.id)}
+                            className="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:border-black hover:text-black focus:outline-none"
+                          >
+                            Mark paid
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       )}
     </div>
