@@ -79,46 +79,76 @@ export default function VisitsPage() {
   const handleAddClient = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingClient(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from("clients").insert({
-      name: newClient.name,
-      email: newClient.email || null,
-      rate_type: newClient.rate_type,
-      rate_amount: parseFloat(newClient.rate_amount),
-      user_id: user!.id,
-    });
-    setNewClient({ name: "", email: "", rate_type: "per_session", rate_amount: "" });
-    setShowAddClient(false);
-    fetchClients();
-    setSavingClient(false);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not logged in");
+
+      const { error } = await supabase.from("clients").insert({
+        name: newClient.name,
+        email: newClient.email || null,
+        rate_type: newClient.rate_type,
+        rate_amount: parseFloat(newClient.rate_amount),
+        user_id: user.id,
+      });
+
+      if (error) throw error;
+
+      setNewClient({ name: "", email: "", rate_type: "per_session", rate_amount: "" });
+      setShowAddClient(false);
+      await fetchClients();
+    } catch (err) {
+      console.error("Failed to add client:", err);
+      alert("Failed to add client. Please try again.");
+    } finally {
+      setSavingClient(false);
+    }
   };
 
   const handleLogVisit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingVisit(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from("visits").insert({
-      client_id: visitForm.client_id,
-      date: visitForm.date,
-      notes: visitForm.notes || null,
-      user_id: user!.id,
-    });
-    setVisitForm({ client_id: "", date: new Date().toISOString().split("T")[0], notes: "" });
-    setShowLogVisit(false);
-    fetchVisits();
-    setSavingVisit(false);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not logged in");
+
+      const { error } = await supabase.from("visits").insert({
+        client_id: visitForm.client_id,
+        date: visitForm.date,
+        notes: visitForm.notes || null,
+        user_id: user.id,
+      });
+
+      if (error) throw error;
+      setVisitForm({ client_id: "", date: new Date().toISOString().split("T")[0], notes: "" });
+      setShowLogVisit(false);
+      await fetchVisits();
+    } catch (err) {
+      console.error("Failed to log visit:", err);
+      alert("Failed to log visit. Please try again.");
+    } finally {
+      setSavingVisit(false);
+    }
   };
 
   const handleQuickLog = async (clientId: string) => {
     setLoadingVisit(clientId);
-    const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from("visits").insert({
-      client_id: clientId,
-      date: new Date().toISOString().split("T")[0],
-      user_id: user!.id,
-    });
-    fetchVisits();
-    setLoadingVisit(null);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not logged in");
+
+      const { error } = await supabase.from("visits").insert({
+        client_id: clientId,
+        date: new Date().toISOString().split("T")[0],
+        user_id: user.id,
+      });
+
+      if (error) throw error;
+      await fetchVisits();
+    } catch (err) {
+      console.error("Failed to log visit:", err);
+    } finally {
+      setLoadingVisit(null);
+    }
   };
 
   const grouped = groupByMonth(visits);
