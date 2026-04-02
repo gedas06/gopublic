@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 
 interface Client {
   id: string;
@@ -38,6 +38,8 @@ function formatMonth(ym: string) {
 }
 
 export default function VisitsPage() {
+  const supabase = createClient();
+
   const [clients, setClients] = useState<Client[]>([]);
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);

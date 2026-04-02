@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import { AddClientModal, type ClientRecord } from "@/components/add-client-modal";
 import { LogSessionModal, type VisitRecord } from "@/components/log-session-modal";
 
@@ -27,6 +27,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function load() {
+      const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id;
 

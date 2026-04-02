@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 
 interface Client {
   id: string;
@@ -40,6 +40,7 @@ function groupByMonth(invoices: Invoice[]): Record<string, Invoice[]> {
 }
 
 export default function BillingPage() {
+  const supabase = createClient();
   const now = new Date();
   const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 

@@ -1,5 +1,4 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
@@ -7,32 +6,29 @@ export async function POST(
   _request: Request,
   { params }: { params: { id: string } }
 ) {
-  const supabase = createRouteHandlerClient({ cookies });
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const userId = session.user.id;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const resend = new Resend(process.env.RESEND_API_KEY);
   const invoiceId = params.id;
 
-  // Fetch the invoice (scoped to this user)
   const { data: invoice, error: invoiceError } = await supabase
     .from("invoices")
     .select("*")
     .eq("id", invoiceId)
-    .eq("user_id", userId)
+    .eq("user_id", user.id)
     .single();
 
   if (invoiceError || !invoice) {
     return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
   }
 
-  // Fetch the client
   const { data: client, error: clientError } = await supabase
     .from("clients")
     .select("*")
     .eq("id", invoice.client_id)
-    .eq("user_id", userId)
+    .eq("user_id", user.id)
     .single();
 
   if (clientError || !client) {
@@ -40,21 +36,16 @@ export async function POST(
   }
 
   if (!client.email) {
-    return NextResponse.json(
-      { error: "Client has no email address" },
-      { status: 422 }
-    );
+    return NextResponse.json({ error: "Client has no email address" }, { status: 422 });
   }
 
-  // Fetch therapist name from profiles
   const { data: profile } = await supabase
     .from("profiles")
     .select("first_name")
-    .eq("user_id", userId)
+    .eq("user_id", user.id)
     .single();
 
   const therapistName = profile?.first_name ?? "Your therapist";
-
   const sessionRate =
     invoice.visit_count > 0
       ? (invoice.amount / invoice.visit_count).toFixed(2)
@@ -76,18 +67,14 @@ export async function POST(
   });
 
   if (emailError) {
-    return NextResponse.json(
-      { error: "Failed to send email" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to send email" }, { status: 500 });
   }
 
-  // Mark invoice as sent
   const { data: updated, error: updateError } = await supabase
     .from("invoices")
     .update({ status: "sent", sent_at: new Date().toISOString() })
     .eq("id", invoiceId)
-    .eq("user_id", userId)
+    .eq("user_id", user.id)
     .select()
     .single();
 
