@@ -1,24 +1,16 @@
-// To enable Google login:
-// 1. Go to supabase.com → your project → Authentication → Providers → Google → enable it
-// 2. Create OAuth credentials at console.cloud.google.com → APIs & Services → Credentials
-// 3. Add authorised redirect URI: https://[your-supabase-ref].supabase.co/auth/v1/callback
-// 4. Paste Client ID and Client Secret into Supabase Google provider settings
-
-import { createClient } from "@/lib/supabase/server";
-import { NextResponse } from "next/server";
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
-  const code = searchParams.get("code");
+  const requestUrl = new URL(request.url)
+  const code = requestUrl.searchParams.get('code')
 
   if (code) {
-    const supabase = createClient();
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-
-    if (!error && data.user) {
-      return NextResponse.redirect(`${origin}/dashboard`);
-    }
+    const cookieStore = cookies()
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    await supabase.auth.exchangeCodeForSession(code)
   }
 
-  return NextResponse.redirect(`${origin}/signup?error=auth_failed`);
+  return NextResponse.redirect(new URL('/dashboard', requestUrl.origin))
 }
