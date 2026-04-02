@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 interface Client {
@@ -51,28 +51,28 @@ export default function BillingPage() {
   const [generating, setGenerating] = useState(false);
   const [sendingId, setSendingId] = useState<string | null>(null);
 
-  const fetchClients = async () => {
+  const fetchClients = useCallback(async () => {
     const { data } = await supabase.from("clients").select("*");
     setClients(data ?? []);
-  };
+  }, [supabase]);
 
-  const fetchInvoices = async () => {
+  const fetchInvoices = useCallback(async () => {
     const { data } = await supabase
       .from("invoices")
       .select("*, clients(name, email)")
       .order("created_at", { ascending: false });
     setInvoices(
-      (data ?? []).map((inv: any) => ({
+      (data ?? []).map((inv: { id: string; client_id: string; month: string; visit_count: number; amount: number; status: "draft" | "sent" | "paid"; created_at: string; clients?: { name: string; email: string } }) => ({
         ...inv,
         client_name: inv.clients?.name ?? "",
         client_email: inv.clients?.email ?? "",
       }))
     );
-  };
+  }, [supabase]);
 
   useEffect(() => {
     Promise.all([fetchClients(), fetchInvoices()]).then(() => setLoading(false));
-  }, []);
+  }, [fetchClients, fetchInvoices]);
 
   const handleGenerate = async () => {
     setGenerating(true);

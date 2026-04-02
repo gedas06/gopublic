@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 interface Client {
@@ -51,22 +51,30 @@ export default function VisitsPage() {
   const [newClient, setNewClient] = useState({ name: "", email: "", rate_type: "per_session", rate_amount: "" });
   const [visitForm, setVisitForm] = useState({ client_id: "", date: new Date().toISOString().split("T")[0], notes: "" });
 
-  const fetchClients = async () => {
+  const fetchClients = useCallback(async () => {
     const { data } = await supabase.from("clients").select("*").order("created_at", { ascending: false });
     setClients(data ?? []);
-  };
+  }, [supabase]);
 
-  const fetchVisits = async () => {
+  const fetchVisits = useCallback(async () => {
     const { data } = await supabase
       .from("visits")
       .select("*, clients(name)")
       .order("date", { ascending: false });
-    setVisits((data ?? []).map((v: any) => ({ ...v, client_name: v.clients?.name ?? "" })));
-  };
+    setVisits(
+      (data ?? []).map((v: { id: string; client_id: string; date: string; notes?: string; clients?: { name: string } }) => ({
+        id: v.id,
+        client_id: v.client_id,
+        client_name: v.clients?.name ?? "",
+        date: v.date,
+        notes: v.notes,
+      }))
+    );
+  }, [supabase]);
 
   useEffect(() => {
     Promise.all([fetchClients(), fetchVisits()]).then(() => setLoading(false));
-  }, []);
+  }, [fetchClients, fetchVisits]);
 
   const handleAddClient = async (e: React.FormEvent) => {
     e.preventDefault();
