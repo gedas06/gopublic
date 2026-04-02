@@ -79,6 +79,8 @@ export default function VisitsPage() {
     setSavingClient(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      console.log("CLIENT SIDE SESSION:", session)
+      console.log("CLIENT SIDE USER:", session?.user?.id)
       if (!session) throw new Error("Not logged in");
       const userId = session.user.id;
 
