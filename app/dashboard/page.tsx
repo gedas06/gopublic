@@ -37,11 +37,11 @@ export default function DashboardPage() {
         fetch("/api/billing"),
       ]);
 
-      const clientsData = cr.ok ? await cr.json() : [];
-      const visitsData = vr.ok ? await vr.json() : [];
-      const invoicesData = ir.ok ? await ir.json() : [];
+      const clientsData = cr.ok ? await cr.json() : {};
+      const visitsData = vr.ok ? await vr.json() : {};
+      const invoicesData = ir.ok ? await ir.json() : {};
 
-      setClients(Array.isArray(clientsData) ? clientsData : []);
+      setClients(Array.isArray(clientsData.clients) ? clientsData.clients : []);
       setVisits(Array.isArray(visitsData) ? visitsData : []);
       setInvoices(Array.isArray(invoicesData) ? invoicesData : []);
 

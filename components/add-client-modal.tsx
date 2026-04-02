@@ -38,7 +38,7 @@ export function AddClientModal({ onClose, onCreated }: Props) {
       }),
     });
     if (res.ok) {
-      const client = await res.json();
+      const { client } = await res.json();
       onCreated(client);
       onClose();
     } else {

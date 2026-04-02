@@ -54,10 +54,10 @@ export default function BillingPage() {
         fetch("/api/billing"),
       ]);
 
-      const clientsData = cr.ok ? await cr.json() : [];
-      const invoicesData = ir.ok ? await ir.json() : [];
+      const clientsData = cr.ok ? await cr.json() : {};
+      const invoicesData = ir.ok ? await ir.json() : {};
 
-      setClients(Array.isArray(clientsData) ? clientsData : []);
+      setClients(Array.isArray(clientsData.clients) ? clientsData.clients : []);
       setInvoices(Array.isArray(invoicesData) ? invoicesData : []);
       setLoading(false);
     }
