@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { supabase } from "@/lib/supabase";
 
 interface Client {
   id: string;
@@ -38,8 +38,6 @@ function formatMonth(ym: string) {
 }
 
 export default function VisitsPage() {
-  const supabase = createClientComponentClient();
-
   const [clients, setClients] = useState<Client[]>([]);
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +52,7 @@ export default function VisitsPage() {
   const fetchClients = useCallback(async () => {
     const { data } = await supabase.from("clients").select("*").order("created_at", { ascending: false });
     setClients(data ?? []);
-  }, [supabase]);
+  }, []);
 
   const fetchVisits = useCallback(async () => {
     const { data } = await supabase
@@ -70,7 +68,7 @@ export default function VisitsPage() {
         notes: v.notes,
       }))
     );
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     Promise.all([fetchClients(), fetchVisits()]).then(() => setLoading(false));
@@ -80,15 +78,16 @@ export default function VisitsPage() {
     e.preventDefault();
     setSavingClient(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not logged in");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not logged in");
+      const userId = session.user.id;
 
       const { error } = await supabase.from("clients").insert({
         name: newClient.name,
         email: newClient.email || null,
         rate_type: newClient.rate_type,
         rate_amount: parseFloat(newClient.rate_amount),
-        user_id: user.id,
+        user_id: userId,
       });
 
       if (error) throw error;
@@ -108,14 +107,15 @@ export default function VisitsPage() {
     e.preventDefault();
     setSavingVisit(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not logged in");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not logged in");
+      const userId = session.user.id;
 
       const { error } = await supabase.from("visits").insert({
         client_id: visitForm.client_id,
         date: visitForm.date,
         notes: visitForm.notes || null,
-        user_id: user.id,
+        user_id: userId,
       });
 
       if (error) throw error;
@@ -133,13 +133,14 @@ export default function VisitsPage() {
   const handleQuickLog = async (clientId: string) => {
     setLoadingVisit(clientId);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not logged in");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not logged in");
+      const userId = session.user.id;
 
       const { error } = await supabase.from("visits").insert({
         client_id: clientId,
         date: new Date().toISOString().split("T")[0],
-        user_id: user.id,
+        user_id: userId,
       });
 
       if (error) throw error;

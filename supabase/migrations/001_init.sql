@@ -32,7 +32,7 @@ create table if not exists pages (
   tagline text,
   bio text,
   services text[],
-  contact_preference text,
+  contact_preference text,  
   contact_value text,
   accent_colour text default '#000000',
   published_at timestamptz default now()

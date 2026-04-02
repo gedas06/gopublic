@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { supabase } from "@/lib/supabase";
 
 interface Client {
   id: string;
@@ -40,7 +40,6 @@ function groupByMonth(invoices: Invoice[]): Record<string, Invoice[]> {
 }
 
 export default function BillingPage() {
-  const supabase = createClientComponentClient();
   const now = new Date();
   const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
@@ -54,7 +53,7 @@ export default function BillingPage() {
   const fetchClients = useCallback(async () => {
     const { data } = await supabase.from("clients").select("*");
     setClients(data ?? []);
-  }, [supabase]);
+  }, []);
 
   const fetchInvoices = useCallback(async () => {
     const { data } = await supabase
@@ -68,7 +67,7 @@ export default function BillingPage() {
         client_email: inv.clients?.email ?? "",
       }))
     );
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     Promise.all([fetchClients(), fetchInvoices()]).then(() => setLoading(false));
@@ -76,7 +75,9 @@ export default function BillingPage() {
 
   const handleGenerate = async () => {
     setGenerating(true);
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const userId = session.user.id;
 
     for (const client of clients) {
       const { count } = await supabase
@@ -97,7 +98,7 @@ export default function BillingPage() {
       await supabase.from("invoices").upsert(
         {
           client_id: client.id,
-          user_id: user!.id,
+          user_id: userId,
           month: selectedMonth,
           visit_count: visitCount,
           amount,
