@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 interface Client {
   id: string;
@@ -17,6 +18,8 @@ interface Invoice {
   visit_count: number;
   amount: number;
   status: "draft" | "sent" | "paid";
+  client_name?: string;
+  client_email?: string;
 }
 
 function formatMonth(ym: string) {
@@ -37,6 +40,7 @@ function groupByMonth(invoices: Invoice[]): Record<string, Invoice[]> {
 }
 
 export default function BillingPage() {
+  const supabase = createClientComponentClient();
   const now = new Date();
   const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
@@ -45,72 +49,85 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(defaultMonth);
   const [generating, setGenerating] = useState(false);
-  const [sending, setSending] = useState<string | null>(null);
+  const [sendingId, setSendingId] = useState<string | null>(null);
+
+  const fetchClients = async () => {
+    const { data } = await supabase.from("clients").select("*");
+    setClients(data ?? []);
+  };
+
+  const fetchInvoices = async () => {
+    const { data } = await supabase
+      .from("invoices")
+      .select("*, clients(name, email)")
+      .order("created_at", { ascending: false });
+    setInvoices(
+      (data ?? []).map((inv: any) => ({
+        ...inv,
+        client_name: inv.clients?.name ?? "",
+        client_email: inv.clients?.email ?? "",
+      }))
+    );
+  };
 
   useEffect(() => {
-    async function load() {
-      const [cr, ir] = await Promise.all([
-        fetch("/api/clients"),
-        fetch("/api/billing"),
-      ]);
-
-      const clientsData = cr.ok ? await cr.json() : {};
-      const invoicesData = ir.ok ? await ir.json() : {};
-
-      setClients(Array.isArray(clientsData.clients) ? clientsData.clients : []);
-      setInvoices(Array.isArray(invoicesData) ? invoicesData : []);
-      setLoading(false);
-    }
-    load();
+    Promise.all([fetchClients(), fetchInvoices()]).then(() => setLoading(false));
   }, []);
 
-  async function handleGenerate() {
+  const handleGenerate = async () => {
     setGenerating(true);
-    const res = await fetch("/api/billing/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ month: selectedMonth }),
-    });
-    if (res.ok) {
-      const { invoices: created } = await res.json();
-      // Replace invoices for this month with the freshly generated ones
-      setInvoices((prev) => [
-        ...(created ?? []),
-        ...prev.filter((inv) => inv.month !== selectedMonth),
-      ]);
+    const { data: { user } } = await supabase.auth.getUser();
+
+    for (const client of clients) {
+      const { count } = await supabase
+        .from("visits")
+        .select("*", { count: "exact", head: true })
+        .eq("client_id", client.id)
+        .gte("date", selectedMonth + "-01")
+        .lte("date", selectedMonth + "-31");
+
+      const visitCount = count ?? 0;
+      if (visitCount === 0 && client.rate_type === "per_session") continue;
+
+      const amount =
+        client.rate_type === "per_session"
+          ? visitCount * client.rate_amount
+          : client.rate_amount;
+
+      await supabase.from("invoices").upsert(
+        {
+          client_id: client.id,
+          user_id: user!.id,
+          month: selectedMonth,
+          visit_count: visitCount,
+          amount,
+          status: "draft",
+        },
+        { onConflict: "client_id,month" }
+      );
     }
+
+    fetchInvoices();
     setGenerating(false);
-  }
+  };
 
-  async function handleSend(invoiceId: string) {
-    setSending(invoiceId);
-    const res = await fetch(`/api/billing/${invoiceId}/send`, {
-      method: "POST",
-    });
-    if (res.ok) {
-      setInvoices((prev) =>
-        prev.map((inv) =>
-          inv.id === invoiceId ? { ...inv, status: "sent" } : inv
-        )
-      );
-    }
-    setSending(null);
-  }
+  const handleSend = async (invoiceId: string) => {
+    setSendingId(invoiceId);
+    await supabase
+      .from("invoices")
+      .update({ status: "sent", sent_at: new Date().toISOString() })
+      .eq("id", invoiceId);
+    fetchInvoices();
+    setSendingId(null);
+  };
 
-  async function handleMarkPaid(invoiceId: string) {
-    const res = await fetch(`/api/billing/${invoiceId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "paid" }),
-    });
-    if (res.ok) {
-      setInvoices((prev) =>
-        prev.map((inv) =>
-          inv.id === invoiceId ? { ...inv, status: "paid" } : inv
-        )
-      );
-    }
-  }
+  const handleMarkPaid = async (invoiceId: string) => {
+    await supabase
+      .from("invoices")
+      .update({ status: "paid", paid_at: new Date().toISOString() })
+      .eq("id", invoiceId);
+    fetchInvoices();
+  };
 
   async function handleDownloadPdf(invoice: Invoice) {
     const client = clients.find((c) => c.id === invoice.client_id);
@@ -192,9 +209,7 @@ export default function BillingPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="mb-6 text-2xl font-light tracking-tight text-black">
-        Billing
-      </h1>
+      <h1 className="mb-6 text-2xl font-light tracking-tight text-black">Billing</h1>
 
       {/* Month selector + generate */}
       <div className="mb-8 flex items-center gap-3">
@@ -228,14 +243,11 @@ export default function BillingPage() {
                 {grouped[month].map((inv) => {
                   const client = clients.find((c) => c.id === inv.client_id);
                   return (
-                    <div
-                      key={inv.id}
-                      className="rounded-xl border border-gray-100 p-4"
-                    >
+                    <div key={inv.id} className="rounded-xl border border-gray-100 p-4">
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="text-sm font-medium text-gray-900">
-                            {client?.name ?? "Unknown client"}
+                            {inv.client_name || client?.name || "Unknown client"}
                           </p>
                           <p className="mt-0.5 text-xs text-gray-400">
                             {inv.visit_count}{" "}
@@ -258,10 +270,10 @@ export default function BillingPage() {
                       <div className="mt-3 flex flex-wrap gap-2">
                         <button
                           onClick={() => handleSend(inv.id)}
-                          disabled={sending === inv.id || inv.status === "paid"}
+                          disabled={sendingId === inv.id || inv.status === "paid"}
                           className="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:border-black hover:text-black disabled:opacity-40 focus:outline-none"
                         >
-                          {sending === inv.id ? "Sending…" : "Send email"}
+                          {sendingId === inv.id ? "Sending…" : "Send email"}
                         </button>
                         <button
                           onClick={() => handleDownloadPdf(inv)}
