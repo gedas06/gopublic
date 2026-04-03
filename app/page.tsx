@@ -2,218 +2,202 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col bg-white font-sans">
+    <main className="min-h-screen bg-white font-sans antialiased">
 
       {/* NAV */}
-      <nav className="sticky top-0 z-50 flex items-center justify-between border-b border-slate-100 bg-white/90 px-6 py-4 backdrop-blur-sm md:px-12">
-        <span className="text-lg font-bold tracking-tight text-slate-900">GoPublic</span>
-        <Link
-          href="/signup"
-          className="rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
-        >
-          Get started free
-        </Link>
+      <nav className="sticky top-0 z-50 border-b border-slate-100 bg-white/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <span className="text-base font-bold tracking-tight text-slate-900">GoPublic</span>
+          <div className="flex items-center gap-6">
+            <a href="#how" className="hidden text-sm text-slate-500 hover:text-slate-900 transition-colors sm:block">How it works</a>
+            <a href="#builders" className="hidden text-sm text-slate-500 hover:text-slate-900 transition-colors sm:block">Examples</a>
+            <Link
+              href="/signup"
+              className="rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+            >
+              Start free
+            </Link>
+          </div>
+        </div>
       </nav>
 
       {/* HERO */}
-      <section className="relative flex flex-col items-center overflow-hidden bg-white px-6 py-28 text-center md:py-40">
-        {/* Soft background accent */}
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="h-[600px] w-[600px] rounded-full bg-amber-50 opacity-60 blur-3xl" />
-        </div>
+      <section className="relative overflow-hidden bg-white px-6 pt-24 pb-20 text-center md:pt-36 md:pb-28">
+        {/* Background grid */}
+        <div className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage: "radial-gradient(circle, #e2e8f0 1px, transparent 1px)",
+            backgroundSize: "32px 32px",
+            opacity: 0.5,
+          }}
+        />
+        {/* Glow */}
+        <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 h-[500px] w-[800px] rounded-full bg-violet-100 opacity-40 blur-[120px]" />
 
-        <div className="relative z-10 flex max-w-3xl flex-col items-center gap-6">
-          <span className="rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-amber-700">
-            Practice management for solo specialists
-          </span>
+        <div className="relative z-10 mx-auto max-w-4xl">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-4 py-1.5 text-xs font-semibold text-violet-700">
+            <span className="h-1.5 w-1.5 rounded-full bg-violet-500 animate-pulse" />
+            2,400+ builders sharing their journey
+          </div>
 
-          <h1 className="text-5xl font-extrabold leading-tight tracking-tight text-slate-900 md:text-7xl">
-            Run your practice.
+          <h1 className="mb-6 text-5xl font-extrabold leading-[1.1] tracking-tight text-slate-900 md:text-7xl">
+            Show your journey.
             <br />
-            <span className="text-amber-500">Get found online.</span>
+            <span className="bg-gradient-to-r from-violet-600 to-indigo-500 bg-clip-text text-transparent">
+              Attract clients, jobs,
+            </span>
+            <br />
+            and followers.
           </h1>
 
-          <p className="max-w-xl text-lg text-slate-500 md:text-xl">
-            GoPublic handles your visits, billing, and public profile — so you spend more time with clients, less time on admin.
+          <p className="mx-auto mb-10 max-w-xl text-lg leading-relaxed text-slate-500 md:text-xl">
+            GoPublic gives you a page that shows what you&apos;re building and proves you&apos;re the real thing — so opportunities come to you.
           </p>
 
-          <div className="mt-2 flex flex-col items-center gap-4 sm:flex-row">
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <Link
               href="/signup"
-              className="rounded-full bg-slate-900 px-8 py-4 text-base font-bold text-white shadow-lg transition hover:scale-105 hover:bg-slate-700 active:scale-100"
+              className="group rounded-full bg-slate-900 px-8 py-4 text-base font-bold text-white shadow-xl transition hover:bg-slate-700 hover:-translate-y-0.5 active:translate-y-0"
             >
-              Get started free
+              Start building in public →
             </Link>
             <a
-              href="#product"
-              className="text-sm font-medium text-slate-500 underline-offset-4 transition hover:text-slate-900 hover:underline"
+              href="#preview"
+              className="text-sm font-medium text-slate-500 transition hover:text-slate-900 underline-offset-4 hover:underline"
             >
-              See how it works ↓
+              See examples
             </a>
           </div>
 
-          <p className="mt-2 text-xs text-slate-400">
-            Used by speech therapists, physios, and coaches — no credit card needed
-          </p>
+          <p className="mt-6 text-xs text-slate-400">Free to start · No credit card needed</p>
         </div>
       </section>
 
-      {/* PRODUCT VISUAL */}
-      <section id="product" className="bg-slate-50 px-6 py-24 md:px-12">
+      {/* PRODUCT PREVIEW */}
+      <section id="preview" className="bg-slate-50 px-6 py-24 md:px-12">
         <div className="mx-auto max-w-5xl">
-          <p className="mb-4 text-center text-xs font-semibold uppercase tracking-widest text-slate-400">
-            Two tools. One place.
+          <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-slate-400">
+            Your public page
           </p>
-          <h2 className="mb-16 text-center text-3xl font-extrabold tracking-tight text-slate-900 md:text-4xl">
-            Everything your practice needs
+          <h2 className="mb-14 text-center text-3xl font-extrabold tracking-tight text-slate-900 md:text-4xl">
+            One link that does the selling for you
           </h2>
 
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-
-            {/* Dashboard mockup */}
-            <div className="flex flex-col gap-4">
-              <p className="text-sm font-semibold text-slate-500">Manage your practice</p>
-              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-                {/* Browser chrome */}
-                <div className="flex items-center gap-1.5 border-b border-slate-100 bg-slate-50 px-4 py-3">
-                  <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
-                  <span className="ml-3 flex-1 rounded-md bg-slate-100 px-3 py-1 text-xs text-slate-400">app.gopublic.io/dashboard</span>
-                </div>
-                {/* App layout */}
-                <div className="flex min-h-[320px]">
-                  {/* Sidebar */}
-                  <div className="flex w-14 flex-col items-center gap-5 border-r border-slate-100 bg-slate-900 py-5 md:w-44 md:items-start md:px-4">
-                    <span className="hidden text-xs font-bold text-white md:block">GoPublic</span>
-                    {[
-                      { label: "Home", active: false },
-                      { label: "Visits", active: true },
-                      { label: "Billing", active: false },
-                      { label: "Social", soon: true },
-                      { label: "Website", soon: true },
-                    ].map(({ label, active, soon }) => (
-                      <div
-                        key={label}
-                        className={`hidden w-full rounded-lg px-3 py-2 text-xs font-medium md:flex md:items-center md:gap-2 ${
-                          active
-                            ? "bg-white text-slate-900"
-                            : "text-slate-400"
-                        }`}
-                      >
-                        {label}
-                        {soon && (
-                          <span className="ml-auto rounded-full bg-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400">
-                            Soon
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  {/* Main */}
-                  <div className="flex flex-1 flex-col gap-4 bg-slate-50 p-4">
-                    <p className="text-xs font-semibold text-slate-500">March 2025</p>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="rounded-xl bg-white p-3 shadow-sm">
-                        <p className="text-xs text-slate-400">Sessions</p>
-                        <p className="mt-1 text-2xl font-bold text-slate-900">12</p>
-                      </div>
-                      <div className="rounded-xl bg-white p-3 shadow-sm">
-                        <p className="text-xs text-slate-400">Revenue</p>
-                        <p className="mt-1 text-2xl font-bold text-slate-900">€480</p>
-                      </div>
-                    </div>
-                    <div className="rounded-xl bg-white p-3 shadow-sm">
-                      <p className="mb-2 text-xs font-semibold text-slate-400">Recent visits</p>
-                      {[
-                        { initials: "LV", name: "Lena V.", date: "Mar 28" },
-                        { initials: "TK", name: "Tom K.", date: "Mar 26" },
-                        { initials: "AM", name: "Anna M.", date: "Mar 25" },
-                      ].map(({ initials, name, date }) => (
-                        <div key={name} className="flex items-center gap-3 py-1.5">
-                          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-[10px] font-bold text-amber-700">
-                            {initials}
-                          </span>
-                          <span className="flex-1 text-xs text-slate-700">{name}</span>
-                          <span className="text-[10px] text-slate-400">{date}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+          {/* Mockup */}
+          <div className="mx-auto max-w-2xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-200">
+            {/* Browser bar */}
+            <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-5 py-3.5">
+              <span className="h-3 w-3 rounded-full bg-red-300" />
+              <span className="h-3 w-3 rounded-full bg-amber-300" />
+              <span className="h-3 w-3 rounded-full bg-green-300" />
+              <div className="ml-3 flex flex-1 items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 py-1.5">
+                <span className="text-[10px] text-slate-400">🔒</span>
+                <span className="text-xs text-slate-400">gopublic.io/p/alex-chen</span>
               </div>
             </div>
 
-            {/* Public profile mockup */}
-            <div className="flex flex-col gap-4">
-              <p className="text-sm font-semibold text-slate-500">Your public profile — live in minutes</p>
-              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-                {/* Phone chrome */}
-                <div className="flex items-center justify-center border-b border-slate-100 bg-slate-50 px-4 py-3">
-                  <span className="rounded-full bg-slate-200 px-8 py-1 text-[10px] text-slate-400">gopublic.io/p/emma-s</span>
+            {/* Profile content */}
+            <div className="p-8">
+              {/* Header */}
+              <div className="flex items-start gap-5 mb-8">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 text-xl font-black text-white shadow-lg">
+                  AC
                 </div>
-                {/* Profile content */}
-                <div className="flex flex-col items-center gap-4 px-6 py-8">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-xl font-bold text-amber-700">
-                    ES
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-lg font-bold text-slate-900">Alex Chen</h3>
+                    <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-600">
+                      Open to work
+                    </span>
                   </div>
-                  <div className="text-center">
-                    <p className="text-lg font-bold text-slate-900">Emma S.</p>
-                    <p className="text-sm text-slate-500">Speech Therapist · Amsterdam</p>
+                  <p className="text-sm text-slate-500">Full-stack developer · Building in public since Jan 2024</p>
+                  <div className="mt-2 flex items-center gap-4">
+                    <span className="text-xs font-semibold text-slate-900">4.2k <span className="font-normal text-slate-400">followers</span></span>
+                    <span className="text-xs font-semibold text-slate-900">38 <span className="font-normal text-slate-400">wins</span></span>
+                    <span className="text-xs font-semibold text-slate-900">12 <span className="font-normal text-slate-400">projects</span></span>
                   </div>
-                  <p className="max-w-xs text-center text-sm text-slate-500">
-                    Helping children and adults find their voice. 8+ years of experience in articulation and fluency.
-                  </p>
-                  <div className="flex w-full flex-col gap-2">
-                    {["Articulation therapy", "Fluency coaching", "Voice training"].map((s) => (
-                      <div key={s} className="flex items-center gap-2 rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-700">
-                        <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-                        {s}
-                      </div>
-                    ))}
+                </div>
+              </div>
+
+              {/* Current project */}
+              <div className="mb-6 rounded-2xl border border-violet-100 bg-violet-50 p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-violet-500">Current project</p>
+                  <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-600 bg-emerald-50 rounded-full px-2 py-0.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    Active
+                  </span>
+                </div>
+                <p className="font-bold text-slate-900 mb-1">SaaS analytics dashboard</p>
+                <p className="text-sm text-slate-500 mb-3">Real-time metrics for indie hackers. Currently in beta with 120 users.</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1.5 rounded-full bg-violet-200">
+                    <div className="h-full w-[65%] rounded-full bg-violet-500" />
                   </div>
-                  <button className="mt-2 w-full rounded-full bg-slate-900 py-3 text-sm font-bold text-white transition hover:bg-slate-700">
-                    Book a session
-                  </button>
+                  <span className="text-xs font-medium text-slate-500">65% complete</span>
+                </div>
+              </div>
+
+              {/* Recent updates */}
+              <div>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-400">Recent updates</p>
+                <div className="flex flex-col gap-3">
+                  {[
+                    { emoji: "🚀", text: "Shipped v0.4 — added CSV export and custom dashboards", time: "2d ago" },
+                    { emoji: "🎯", text: "Crossed 100 beta users. Retention is at 68% week-over-week", time: "5d ago" },
+                    { emoji: "💬", text: "First paying customer converted from free tier", time: "1w ago" },
+                  ].map(({ emoji, text, time }) => (
+                    <div key={time} className="flex items-start gap-3 rounded-xl bg-slate-50 px-4 py-3">
+                      <span className="text-base mt-0.5">{emoji}</span>
+                      <p className="flex-1 text-sm text-slate-700">{text}</p>
+                      <span className="shrink-0 text-[10px] text-slate-400">{time}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </section>
 
       {/* HOW IT WORKS */}
-      <section className="bg-white px-6 py-24 md:px-12">
+      <section id="how" className="bg-white px-6 py-24 md:px-12">
         <div className="mx-auto max-w-4xl">
-          <p className="mb-4 text-center text-xs font-semibold uppercase tracking-widest text-slate-400">
+          <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-slate-400">
             How it works
           </p>
           <h2 className="mb-16 text-center text-3xl font-extrabold tracking-tight text-slate-900 md:text-4xl">
-            Up and running in minutes
+            Three steps to building in public
           </h2>
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+
+          <div className="relative grid grid-cols-1 gap-12 md:grid-cols-3">
+            {/* Connector line */}
+            <div className="absolute top-6 left-0 right-0 hidden h-px bg-gradient-to-r from-violet-200 via-indigo-200 to-violet-200 md:block" style={{ marginLeft: "calc(16.67% + 24px)", marginRight: "calc(16.67% + 24px)" }} />
+
             {[
               {
-                num: "01",
-                title: "Sign up and add your clients",
-                desc: "Enter each client's name, session rate, and billing type. Takes 2 minutes.",
+                step: "01",
+                title: "Create your page",
+                desc: "Tell GoPublic what you're building. Takes 2 minutes to go live.",
+                color: "from-violet-500 to-indigo-500",
               },
               {
-                num: "02",
-                title: "Log visits, generate invoices",
-                desc: "One tap per session. At end of month, invoices are generated and sent automatically.",
+                step: "02",
+                title: "Share your progress",
+                desc: "Log wins, milestones, and updates. Your page stays fresh automatically.",
+                color: "from-indigo-500 to-blue-500",
               },
               {
-                num: "03",
-                title: "Your profile goes live",
-                desc: "Clients find you, colleagues refer you — without you lifting a finger.",
+                step: "03",
+                title: "Attract opportunities",
+                desc: "Clients, employers, and followers find you through your proof of work.",
+                color: "from-blue-500 to-violet-500",
               },
-            ].map(({ num, title, desc }) => (
-              <div key={num} className="flex flex-col gap-4">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-lg font-black text-amber-500">
-                  {num}
-                </span>
+            ].map(({ step, title, desc, color }) => (
+              <div key={step} className="relative flex flex-col items-center text-center gap-4">
+                <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${color} text-sm font-black text-white shadow-md`}>
+                  {step}
+                </div>
                 <p className="text-base font-bold text-slate-900">{title}</p>
                 <p className="text-sm leading-relaxed text-slate-500">{desc}</p>
               </div>
@@ -222,38 +206,159 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FEATURES */}
-      <section className="bg-slate-50 px-6 py-24 md:px-12">
+      {/* MOMENTUM — Activity feed */}
+      <section className="bg-slate-950 px-6 py-24 md:px-12">
+        <div className="mx-auto max-w-3xl">
+          <div className="mb-10 flex items-center justify-between">
+            <div>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-slate-500">Live momentum</p>
+              <h2 className="text-2xl font-extrabold tracking-tight text-white md:text-3xl">
+                Recent updates from builders
+              </h2>
+            </div>
+            <span className="flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900 px-3 py-1.5 text-[10px] font-semibold text-slate-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Live
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {[
+              { name: "Sarah M.", avatar: "SM", action: "shipped", item: "v1.0 of her newsletter platform", time: "just now", color: "from-pink-500 to-rose-500" },
+              { name: "James T.", avatar: "JT", action: "crossed", item: "$1,000 MRR on his SaaS", time: "4m ago", color: "from-emerald-500 to-teal-500" },
+              { name: "Priya K.", avatar: "PK", action: "landed", item: "first enterprise client", time: "12m ago", color: "from-amber-500 to-orange-500" },
+              { name: "Tom W.", avatar: "TW", action: "published", item: "week 8 progress update", time: "28m ago", color: "from-violet-500 to-indigo-500" },
+              { name: "Lena V.", avatar: "LV", action: "reached", item: "500 followers on her builder page", time: "1h ago", color: "from-blue-500 to-indigo-500" },
+            ].map(({ name, avatar, action, item, time, color }) => (
+              <div key={name} className="flex items-center gap-4 rounded-2xl border border-slate-800 bg-slate-900 px-5 py-4">
+                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${color} text-xs font-black text-white`}>
+                  {avatar}
+                </div>
+                <p className="flex-1 text-sm text-slate-300">
+                  <span className="font-semibold text-white">{name}</span> {action} <span className="text-slate-200">{item}</span>
+                </p>
+                <span className="shrink-0 text-[11px] text-slate-600">{time}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURED BUILDERS */}
+      <section id="builders" className="bg-white px-6 py-24 md:px-12">
         <div className="mx-auto max-w-4xl">
-          <p className="mb-4 text-center text-xs font-semibold uppercase tracking-widest text-slate-400">
-            Why GoPublic
+          <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-slate-400">
+            Featured builders
           </p>
-          <h2 className="mb-16 text-center text-3xl font-extrabold tracking-tight text-slate-900 md:text-4xl">
-            Built for the way you work
+          <h2 className="mb-14 text-center text-3xl font-extrabold tracking-tight text-slate-900 md:text-4xl">
+            Real people. Real progress.
           </h2>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
             {[
               {
-                icon: "🗓",
-                title: "Stop losing track",
-                desc: "Log every session in one tap. Always know who attended and what they owe.",
+                name: "Marco R.",
+                avatar: "MR",
+                what: "Building an AI writing assistant for non-native speakers",
+                metrics: { followers: "1.8k", wins: 24, weeks: 14 },
+                color: "from-violet-500 to-indigo-600",
+                tag: "Indie hacker",
               },
               {
-                icon: "💸",
-                title: "Get paid faster",
-                desc: "Generate and send professional invoices at end of month — in seconds, not hours.",
+                name: "Yuki N.",
+                avatar: "YN",
+                what: "Documenting her journey from designer to SaaS founder",
+                metrics: { followers: "3.1k", wins: 41, weeks: 22 },
+                color: "from-pink-500 to-rose-600",
+                tag: "Designer → founder",
               },
               {
-                icon: "🌐",
-                title: "Get found online",
-                desc: "A clean public page that shows your services and builds trust with new clients.",
+                name: "David O.",
+                avatar: "DO",
+                what: "Open-source developer building dev tools in public",
+                metrics: { followers: "5.4k", wins: 18, weeks: 31 },
+                color: "from-emerald-500 to-teal-600",
+                tag: "Open source",
+              },
+            ].map(({ name, avatar, what, metrics, color, tag }) => (
+              <div key={name} className="group rounded-2xl border border-slate-100 bg-white p-6 hover:border-slate-300 hover:shadow-lg transition-all duration-200">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className={`flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br ${color} text-sm font-black text-white shadow-md`}>
+                    {avatar}
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-900 text-sm">{name}</p>
+                    <span className="text-[10px] font-medium text-slate-400">{tag}</span>
+                  </div>
+                </div>
+
+                <p className="mb-5 text-sm leading-relaxed text-slate-500">{what}</p>
+
+                <div className="flex items-center justify-between border-t border-slate-50 pt-4">
+                  <div className="text-center">
+                    <p className="text-sm font-bold text-slate-900">{metrics.followers}</p>
+                    <p className="text-[10px] text-slate-400">followers</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-bold text-slate-900">{metrics.wins}</p>
+                    <p className="text-[10px] text-slate-400">wins logged</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-bold text-slate-900">{metrics.weeks}w</p>
+                    <p className="text-[10px] text-slate-400">building</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* BENEFITS */}
+      <section className="bg-slate-50 px-6 py-24 md:px-12">
+        <div className="mx-auto max-w-4xl">
+          <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-slate-400">
+            Why it works
+          </p>
+          <h2 className="mb-14 text-center text-3xl font-extrabold tracking-tight text-slate-900 md:text-4xl">
+            Building in public compounds
+          </h2>
+
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+            {[
+              {
+                icon: (
+                  <svg className="h-6 w-6 text-violet-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                ),
+                title: "Get discovered",
+                desc: "Your proof of work surfaces when people search for what you build. No algorithm games needed.",
+              },
+              {
+                icon: (
+                  <svg className="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                  </svg>
+                ),
+                title: "Build credibility",
+                desc: "A page that updates regularly signals commitment. Trust is built in public, not in DMs.",
+              },
+              {
+                icon: (
+                  <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                ),
+                title: "Stay consistent",
+                desc: "When people are watching, you ship. Accountability is the most underrated growth lever.",
               },
             ].map(({ icon, title, desc }) => (
-              <div
-                key={title}
-                className="group rounded-2xl border border-slate-100 bg-white p-7 transition hover:shadow-md hover:-translate-y-0.5"
-              >
-                <span className="mb-4 block text-3xl">{icon}</span>
+              <div key={title} className="rounded-2xl bg-white border border-slate-100 p-7 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+                <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-slate-50 border border-slate-100">
+                  {icon}
+                </div>
                 <p className="mb-2 text-base font-bold text-slate-900">{title}</p>
                 <p className="text-sm leading-relaxed text-slate-500">{desc}</p>
               </div>
@@ -262,84 +367,42 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SOCIAL PROOF */}
-      <section className="bg-white px-6 py-24 md:px-12">
-        <div className="mx-auto max-w-4xl">
-          <p className="mb-16 text-center text-xs font-semibold uppercase tracking-widest text-slate-400">
-            Trusted by specialists
-          </p>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            {[
-              {
-                quote: "I used to track sessions in a notebook. Now I send invoices in 30 seconds.",
-                name: "Laura D.",
-                role: "Speech therapist, Rotterdam",
-              },
-              {
-                quote: "My public page has brought in three new clients this month. I didn't have to do anything.",
-                name: "Marta K.",
-                role: "Physiotherapist, Vilnius",
-              },
-              {
-                quote: "It's the first tool I've used that actually understands how a solo practice works.",
-                name: "Tim V.",
-                role: "Life coach, Utrecht",
-              },
-            ].map(({ quote, name, role }) => (
-              <div key={name} className="rounded-2xl bg-slate-50 p-7">
-                <p className="mb-6 text-sm leading-relaxed text-slate-700">&ldquo;{quote}&rdquo;</p>
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">{name}</p>
-                  <p className="text-xs text-slate-400">{role}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Profession scroll strip */}
-          <div className="mt-16 flex flex-wrap justify-center gap-3">
-            {[
-              "Speech therapist",
-              "Physiotherapist",
-              "Life coach",
-              "Occupational therapist",
-              "Dietitian",
-              "Psychologist",
-              "Personal trainer",
-              "Music therapist",
-            ].map((p) => (
-              <span
-                key={p}
-                className="rounded-full border border-slate-200 px-4 py-1.5 text-xs font-medium text-slate-500"
-              >
-                {p}
-              </span>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* FINAL CTA */}
-      <section className="bg-slate-900 px-6 py-28 text-center md:px-12">
-        <div className="mx-auto max-w-xl">
-          <h2 className="mb-4 text-4xl font-extrabold tracking-tight text-white md:text-5xl">
-            Your practice deserves better tools.
+      <section className="relative overflow-hidden bg-slate-950 px-6 py-32 text-center md:px-12">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="h-[400px] w-[700px] rounded-full bg-violet-600 opacity-20 blur-[100px]" />
+        </div>
+
+        <div className="relative z-10 mx-auto max-w-xl">
+          <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-slate-500">
+            Join 2,400+ builders
+          </p>
+          <h2 className="mb-5 text-4xl font-extrabold tracking-tight text-white md:text-5xl leading-tight">
+            Your journey is your
+            <br />
+            <span className="bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">
+              best asset.
+            </span>
           </h2>
           <p className="mb-10 text-lg text-slate-400">
-            Set up in under 5 minutes. No credit card needed.
+            Start sharing it. Opportunities follow proof of work.
           </p>
           <Link
             href="/signup"
-            className="inline-block rounded-full bg-amber-400 px-10 py-4 text-base font-bold text-slate-900 shadow-lg transition hover:scale-105 hover:bg-amber-300 active:scale-100"
+            className="inline-block rounded-full bg-white px-10 py-4 text-base font-bold text-slate-900 shadow-xl transition hover:bg-slate-100 hover:-translate-y-0.5 active:translate-y-0"
           >
-            Get started free
+            Start building in public →
           </Link>
+          <p className="mt-5 text-xs text-slate-600">Free to start · Live in 2 minutes</p>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer className="border-t border-slate-100 bg-white px-6 py-8 text-center text-xs text-slate-400">
-        © 2025 GoPublic · Built for specialists
+      <footer className="border-t border-slate-100 bg-white px-6 py-8">
+        <div className="mx-auto flex max-w-6xl items-center justify-between">
+          <span className="text-sm font-bold text-slate-900">GoPublic</span>
+          <p className="text-xs text-slate-400">© 2026 GoPublic · Show your journey.</p>
+        </div>
       </footer>
 
     </main>

@@ -23,6 +23,12 @@ export default function DashboardLayout({
             >
               Billing
             </Link>
+            <Link
+              href="/dashboard/social"
+              className="text-sm text-gray-500 hover:text-black transition-colors"
+            >
+              Social
+            </Link>
           </div>
         </div>
       </nav>
