@@ -106,11 +106,6 @@ export default function DashboardPage() {
   const sortedVisits = [...visits].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8);
   const sortedInvoices = [...invoices].sort((a, b) => b.month.localeCompare(a.month)).slice(0, 8);
 
-  const feedItems = feedFilter === "sessions" ? sortedVisits
-    : feedFilter === "invoices" ? []
-    : feedFilter === "clients" ? []
-    : sortedVisits.slice(0, 5);
-
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
